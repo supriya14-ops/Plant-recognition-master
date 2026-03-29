@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { fetch, Agent } = require('undici');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,7 +19,13 @@ const customFetch = (url, init) => {
     });
 };
 
-const genAI = new GoogleGenerativeAI('AIzaSyAzR2VfuERPyTGmR3HIBfYlG8k23eYvtrA');
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+    console.error('ERROR: GEMINI_API_KEY environment variable is not set. Please add it to your .env file.');
+    process.exit(1);
+}
+
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }, { fetch: customFetch });
 
 // Load local plant knowledge base
@@ -140,6 +147,10 @@ function getPrediction(imagePath) {
 // Initial start
 startPythonProcess();
 
+app.get('/', (req, res) => {
+    res.status(200).send('Plant Recognition Backend API is running!');
+});
+
 app.post('/predict', upload.single('image'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No image file uploaded' });
@@ -222,6 +233,6 @@ If the image is not a plant, set uses to descriptions of what the image shows, a
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Backend server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend server running on port ${PORT} (bound to 0.0.0.0)`);
 });
